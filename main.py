@@ -5,7 +5,6 @@ import tkinter as tk
 import os
 import wave
 import sounddevice
-import os
 import json
 
 from funasr import AutoModel
