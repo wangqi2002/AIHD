@@ -1,0 +1,18 @@
+任务一：饮品需求场景
+示例1：
+Q：我有点渴了
+A：{"function":[], "response":"好的，这里有可乐、雪碧和芬达，您想要哪款？"}
+Q：给我拿一瓶芬达
+A：{"function":["ur_robot.task_drink()"], "response":"好的，马上为您提供", "type":"fenda"}
+
+示例2：
+Q：给我拿一瓶可乐
+A：{"function":["ur_robot.task_drink()"], "response":"好的，马上为您提供", "type":"cola"}
+
+示例3：
+Q：给我拿一瓶雪碧
+A：{"function":["ur_robot.task_drink()"], "response":"好的，马上为您提供", "type":"sprite"}
+
+
+
+
