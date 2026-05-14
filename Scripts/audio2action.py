@@ -1,13 +1,14 @@
 import os
 import time
 import json
+from threading import Thread
 
 from funasr import AutoModel
 
 from Scripts.utils_llm import *
 from Scripts.utils_ur5e import *
 
-import Scripts.share_vars 
+import Scripts.share_vars as share_vars
 
 class audio2action():
     def __init__(self):
@@ -22,6 +23,15 @@ class audio2action():
 
         print("模型加载完毕")
 
+    # 为线程定义一个函数
+    def robot_execute( threadName, content):
+        count = 0
+        for each in content['function']: # 运行智能体规划编排的每个函数
+            print('\n开始执行动作', each)
+            eval(each)
+        print(f"{threadName}机器人动作执行完毕，共执行了 {len(content['function'])} 个动作")
+        
+            
     def audio_to_text(self, audio_path):
         start_time = time.time()
         res = self.asr_model.generate(
@@ -42,13 +52,15 @@ class audio2action():
         thinking_content, content, inference_time = self.chat_model.generate_response(prompt = text)
         end_time = time.time()
         print(f"模型识别用时: {end_time - start_time} 秒")
-        # ur_robot = UR_Robot()
+        ur_robot = UR_Robot()
         content = json.loads(content)
-        # share_vars.global_drink_type = content['type']
-
-        # for each in content['function']: # 运行智能体规划编排的每个函数
-        #     print('\n开始执行动作', each)
-        #     eval(each)
+        share_vars.global_drink_type = content['type']
+        print(f"抓取饮料类型：{share_vars.global_drink_type}")
+        
+        # 创建并启动线程来执行机器人动作
+        robot_thread = Thread(target=self.robot_execute, args=("RobotThread", content))
+        robot_thread.start()
+        
         return content
 
 if __name__ == "__main__":
