@@ -16,16 +16,16 @@ class audio2action():
         self.asr_model = AutoModel(
         model="/home/win/.cache/modelscope/hub/FunAudioLLM/Fun-ASR-Nano-2512",
         trust_remote_code=True,
-        remote_code="/home/win/Project/P03/Fun-ASR//model.py",
+        remote_code="/home/win/Project/P04/AIHD/Fun-ASR//model.py",
         device="cuda:0",
     )   
         self.chat_model = QwenModel() 
-
+        self.ur_robot = UR_Robot()
+        
         print("模型加载完毕")
 
     # 为线程定义一个函数
-    def robot_execute( threadName, content):
-        count = 0
+    def robot_execute(self, threadName, content):
         for each in content['function']: # 运行智能体规划编排的每个函数
             print('\n开始执行动作', each)
             eval(each)
@@ -52,10 +52,10 @@ class audio2action():
         thinking_content, content, inference_time = self.chat_model.generate_response(prompt = text)
         end_time = time.time()
         print(f"模型识别用时: {end_time - start_time} 秒")
-        ur_robot = UR_Robot()
         content = json.loads(content)
-        share_vars.global_drink_type = content['type']
-        print(f"抓取饮料类型：{share_vars.global_drink_type}")
+        print(f"智能体规划编排的动作：{content}")
+        # share_vars.global_drink_type = content['type']
+        # print(f"抓取饮料类型：{share_vars.global_drink_type}")
         
         # 创建并启动线程来执行机器人动作
         robot_thread = Thread(target=self.robot_execute, args=("RobotThread", content))

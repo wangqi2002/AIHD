@@ -5,31 +5,24 @@ from pyModbusTCP.client import ModbusClient
 
 import numpy as np
 import math
-import os
-import sys
-
-# python_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# sys.path.append(python_dir)
+from Scripts.predict import *
+from Scripts.zhixing_gripper import ZhixingGripper
 
 class UR_Robot():
     """ UR机器人控制类 """
     def __init__(self, robot_ip="192.168.1.30"):
-        self.rtde_c = rtde_control.RTDEControlInterface(robot_ip)
-        self.rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
-        print("UR机器人控制接口已连接")
 
         try:
-            self.zxhand_client = ModbusClient(host='192.168.1.20', port=502, auto_open=True, auto_close=True)
-            self.zxhand_client.write_single_register(self.add_mode, 1)
-            self.zxhand_client.write_single_register(self.add_tongbu, 1)
-            self.zxhand_client.write_single_register(self.add_position, 1)
-            self.zxhand_client.write_single_register(self.add_strength, 1)
-            self.zxhand_client.write_single_register(self.add_speed, 1)
-            self.zxhand_client.write_single_register(self.add_acc, 1)
-            print("ZXHand 夹爪初始化成功")
+            self.rtde_c = rtde_control.RTDEControlInterface(robot_ip)
+            self.rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
+            print("UR机器人控制接口已连接")
         except Exception as e:
-            print(f"ZXHand 夹爪初始化失败: {e}")
-            self.zxhand_client = None
+            print(f"UR机器人控制接口连接失败: {e}")
+            self.rtde_c = None
+            self.rtde_r = None
+
+        self.gripper = ZhixingGripper()
+        self.gripper.connect()
 
         self.acc = 0.5
         self.speed = 0.1
@@ -41,13 +34,23 @@ class UR_Robot():
                                   (90 / 360.0) * 2 * np.pi, 
                                   (90 / 360.0) * 2 * np.pi
                                   ]
-        
+        self.home_task_drink = [(52.45 / 360.0) * 2 * np.pi, 
+                                -(77.89 / 360.0) * 2 * np.pi,
+                                -(68.30 / 360.0) * 2 * np.pi, 
+                                -(124.19 / 360.0) * 2 * np.pi,
+                                (90.75 / 360.0) * 2 * np.pi, 
+                                (98.17 / 360.0) * 2 * np.pi
+                                ]
         self.base_rotation_angle = np.radians(45)   # 绕Z轴旋转角度（度）
         self.base_rotation_axis = 'z'   # 默认绕Z轴
 
-    def go_home(self):
+    def go_home(self, task_type=None):
         """ 快速回零 """
-        self.rtde_c.moveJ(self.home_joint_config, self.speed, self.acc, False)
+        # if task_type == 'voice_teach':
+        #     self.rtde_c.moveL(self.home_joint_config, self.speed, self.acc, False)
+        # elif task_type == 'drink':
+        #     self.rtde_c.moveJ(self.home_task_drink, self.speed, self.acc, False)
+        self.rtde_c.moveJ(self.home_task_drink, self.speed, self.acc, False)
 
     def _transform(self, dx, dy, dz):
         """将相对于原始基坐标系的移动向量变换到当前基坐标系下"""
@@ -86,6 +89,11 @@ class UR_Robot():
         target_pose = np.array(target_pose)
         self.rtde_c.moveL(target_pose, self.speed, self.acc, False)
 
+    def move_l_sequence(self, target_poses):
+        """ 在笛卡尔空间中执行一系列直线运动 """
+        for pose in target_poses:
+            self.move_l(pose)
+
     def move_j(self, a, b, c, d, e, f):
         """ 移动到指定关节角度 """
         current_pose = np.array(self.rtde_r.getActualQ())
@@ -93,17 +101,47 @@ class UR_Robot():
         # print(f"当前关节角度: {current_pose}")
         # print(f"目标关节角度: {target_pose}")
         self.rtde_c.moveJ(target_pose, self.speed, self.acc, False)
-    def zx_gripper(self, b):
-        """ 控制爪手开合 """
-        if b:
-            self.rtde_c.setStandardDigitalOut(0, True)  # 关闭爪手
-        else:
-            self.rtde_c.setStandardDigitalOut(0, False) # 打开爪手
+
+    # def gripper(self, b):
+    #     """ 控制爪手开合 """
+    #     if b:
+    #         self.rtde_c.setStandardDigitalOut(0, True)  # 关闭爪手
+    #     else:
+    #         self.rtde_c.setStandardDigitalOut(0, False) # 打开爪手
+
+    # def task_drink(self):
+    #     self.go_home()
+    #     la = Location()
+    #     print(f"la.dringk_type:{la.drink_type}")
+    #     h = la.img2pos(la.drink_type)
+    #     h = np.array(h)/1000
+    #     print(f"识别到的饮品位置: {h}")
+    #     target_poses_grab = []
+    #     target_poses_put = []
+    #     current_pose = np.array(self.rtde_r.getActualTCPPose())
+    #     target_pose1 = np.array([h[0], h[1], current_pose[2]-0.2, current_pose[3], current_pose[4], current_pose[5]])
+    #     target_pose2 = np.array([h[0], h[1], h[2]+0.16, current_pose[3], current_pose[4], current_pose[5]])
+    #     target_poses_grab = [target_pose1, target_pose2]
+    #     target_pose3 = np.array([h[0], h[1], h[2]+0.16+0.05, current_pose[3], current_pose[4], current_pose[5]])
+    #     target_pose4 = np.array([615.14/1000, 59.35/1000, 475.10/1000, current_pose[3], current_pose[4], current_pose[5]])
+    #     target_pose5 = np.array([615.14/1000, 59.35/1000, 475.10/1000-0.1, current_pose[3], current_pose[4], current_pose[5]])
+    #     target_poses_put = [target_pose3, target_pose4, target_pose5]
+    #     self.move_l_sequence(target_poses_grab)
+    #     # self.gripper.move_and_wait_for_pos(45,200,200)
+    #     # self.move_l_sequence(target_poses_put)
+    #     # self.gripper.move_and_wait_for_pos(100,200,200)
+    #     # self.go_home()
+
+    def get_current_tcp(self):
+        current_pose = np.array(self.rtde_r.getActualTCPPose())
+        print(f"当前TCP位置: {current_pose}")
+        
 
 if __name__ == "__main__":
     ur_robot = UR_Robot()
-    ur_robot.go_home()
-    ur_robot.move_direction(200, 0, 0)
-    ur_robot.move_direction(0, 100, 0)
-    ur_robot.move_direction(0, 0, 100)
+    ur_robot.get_current_tcp()
+    # ur_robot.go_home()
+    # ur_robot.move_direction(200, 0, 0)
+    # ur_robot.move_direction(0, 100, 0)
+    # ur_robot.move_direction(0, 0, 100)
     # ur_robot.move_j(5, 0, 0, 0, 0, 0)

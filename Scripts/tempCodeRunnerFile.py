@@ -1,3 +1,4 @@
+
 # -----------------------------------------------------------------------#
 # 宋进雨
 # 目标检测定位后处理
@@ -10,7 +11,6 @@ import numpy as np
 from yolo import YOLO
 from collections import Counter
 import pyrealsense2 as rs
-import share_vars
 
 
 class Location:
@@ -25,8 +25,7 @@ class Location:
                                      [0, 0, 0, 1]])
         self.path = 'img/depth_roi/point_cloud_roi.pcd'
         self.grap_log = 'X_Max'
-        self.drink_type = share_vars.global_drink_type
-        print(f"drink_type:{share_vars.global_drink_type}")
+        self.drink_type = "sprite"
         self.pipeline = rs.pipeline()
         self.config = rs.config()
         self.align = None
