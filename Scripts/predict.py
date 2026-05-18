@@ -7,10 +7,10 @@ import cv2
 import open3d as o3d
 from PIL import Image
 import numpy as np
-from yolo import YOLO
+from Scripts.yolo import YOLO
 from collections import Counter
 import pyrealsense2 as rs
-import share_vars
+import Scripts.share_vars as share_vars
 
 
 class Location:
