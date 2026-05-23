@@ -11,18 +11,30 @@ from Scripts.utils_ur5e import *
 import Scripts.share_vars as share_vars
 
 class audio2action():
-    def __init__(self):
 
-        self.asr_model = AutoModel(
-        model="/home/win/.cache/modelscope/hub/FunAudioLLM/Fun-ASR-Nano-2512",
-        trust_remote_code=True,
-        remote_code="/home/win/Project/P04/AIHD/Fun-ASR//model.py",
-        device="cuda:0",
-    )   
-        self.chat_model = QwenModel() 
-        self.ur_robot = UR_Robot()
-        
-        print("模型加载完毕")
+    _instance = None
+    _initialized = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        print("__init__")
+        print(f"第一次初始化: {self._initialized}")
+        if not self._initialized:
+            print("正在加载模型...")
+            self.asr_model = AutoModel(
+                model="/home/win/.cache/modelscope/hub/FunAudioLLM/Fun-ASR-Nano-2512",
+                trust_remote_code=True,
+                remote_code="/home/win/Project/P04/AIHD/Fun-ASR//model.py",
+                device="cuda:0",
+            )   
+            self.chat_model = QwenModel() 
+            self.ur_robot = UR_Robot()
+            self.__class__._initialized = True
+            print("模型加载完毕")
 
     # 为线程定义一个函数
     def robot_execute(self, threadName, content):

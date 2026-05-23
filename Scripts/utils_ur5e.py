@@ -5,21 +5,35 @@ from pyModbusTCP.client import ModbusClient
 
 import numpy as np
 import math
+import time
 from Scripts.predict import *
 from Scripts.zhixing_gripper import ZhixingGripper
 
 class UR_Robot():
     """ UR机器人控制类 """
-    def __init__(self, robot_ip="192.168.1.30"):
+    def __init__(self, robot_ip="192.168.1.30", retry=3):
 
-        try:
-            self.rtde_c = rtde_control.RTDEControlInterface(robot_ip)
-            self.rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
-            print("UR机器人控制接口已连接")
-        except Exception as e:
-            print(f"UR机器人控制接口连接失败: {e}")
-            self.rtde_c = None
-            self.rtde_r = None
+        for i in range(retry):
+            try:
+                self.rtde_c = rtde_control.RTDEControlInterface(robot_ip)
+                self.rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
+                if self.rtde_c is not None and self.rtde_r is not None:
+                    print("UR机器人控制接口已连接")
+                break
+            except Exception as e:
+                print(f"第{i+1}次连接失败: {e}")
+                if i == retry-1:
+                    raise
+                time.sleep(2)
+
+        # try:
+        #     self.rtde_c = rtde_control.RTDEControlInterface(robot_ip)
+        #     self.rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
+        #     print("UR机器人控制接口已连接")
+        # except Exception as e:
+        #     print(f"UR机器人控制接口连接失败: {e}")
+        #     self.rtde_c = None
+        #     self.rtde_r = None
 
         self.gripper = ZhixingGripper()
         self.gripper.connect()

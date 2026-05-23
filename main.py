@@ -78,4 +78,5 @@ class UI():
         response = self.a2a.action(text)
         print(response)
 
-UI()
+if __name__ == "__main__":
+    UI()
